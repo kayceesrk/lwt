@@ -97,7 +97,7 @@ CAMLprim value lwt_unix_mincore(value val_buffer, value val_offset, value val_le
   mincore((char*)Caml_ba_data_val(val_buffer) + Long_val(val_offset), Long_val(val_length), vec);
   long i;
   for (i = 0; i < len; i++)
-    Field(val_states, i) = Val_bool(vec[i] & 1);
+    caml_modify_field(val_states, i, Val_bool(vec[i] & 1));
   return Val_unit;
 }
 #endif
@@ -213,8 +213,8 @@ value lwt_unix_recvfrom(value fd, value buf, value ofs, value len, value flags)
   if (ret == -1) uerror("recvfrom", Nothing);
   address = alloc_sockaddr(&addr, addr_len, -1);
   result = caml_alloc_tuple(2);
-  Field(result, 0) = Val_int(ret);
-  Field(result, 1) = address;
+  caml_modify_field(result, 0, Val_int(ret));
+  caml_modify_field(result, 1, address);
   CAMLreturn(result);
 }
 
@@ -232,8 +232,8 @@ value lwt_unix_bytes_recvfrom(value fd, value buf, value ofs, value len, value f
   if (ret == -1) uerror("recvfrom", Nothing);
   address = alloc_sockaddr(&addr, addr_len, -1);
   result = caml_alloc_tuple(2);
-  Field(result, 0) = Val_int(ret);
-  Field(result, 1) = address;
+  caml_modify_field(result, 0, Val_int(ret));
+  caml_modify_field(result, 1, address);
   CAMLreturn(result);
 }
 
@@ -636,15 +636,15 @@ static value alloc_process_status(int status)
 
   if (WIFEXITED(status)) {
     st = alloc_small(1, TAG_WEXITED);
-    Field(st, 0) = Val_int(WEXITSTATUS(status));
+    caml_modify_field(st, 0, Val_int(WEXITSTATUS(status)));
   }
   else if (WIFSTOPPED(status)) {
     st = alloc_small(1, TAG_WSTOPPED);
-    Field(st, 0) = Val_int(caml_rev_convert_signal_number(WSTOPSIG(status)));
+    caml_modify_field(st, 0, Val_int(caml_rev_convert_signal_number(WSTOPSIG(status))));
   }
   else {
     st = alloc_small(1, TAG_WSIGNALED);
-    Field(st, 0) = Val_int(caml_rev_convert_signal_number(WTERMSIG(status)));
+    caml_modify_field(st, 0, Val_int(caml_rev_convert_signal_number(WTERMSIG(status))));
   }
   return st;
 }
@@ -718,8 +718,8 @@ CAMLprim value lwt_unix_get_affinity(value val_pid)
   for (i = sizeof(cpu_set_t) * 8 - 1; i >= 0; i--) {
     if (CPU_ISSET(i, &cpus)) {
       node = caml_alloc_tuple(2);
-      Field(node, 0) = Val_int(i);
-      Field(node, 1) = list;
+      caml_modify_field(node, 0, Val_int(i));
+      caml_modify_field(node, 1, list);
       list = node;
     }
   }
@@ -901,8 +901,8 @@ static value result_open(struct job_open *job)
   int fd = job->fd;
   LWT_UNIX_CHECK_JOB_ARG(job, fd < 0, "open", job->name);
   value result = caml_alloc_tuple(2);
-  Field(result, 0) = Val_int(fd);
-  Field(result, 1) = Val_bool(job->blocking);
+  caml_modify_field(result, 0, Val_int(fd));
+  caml_modify_field(result, 1, Val_bool(job->blocking));
   lwt_unix_free_job(&job->job);
   return result;
 }
@@ -1113,43 +1113,43 @@ static value copy_stat(int use_64, struct stat *buf)
   ctime = copy_double((double) buf->st_ctime + (NANOSEC(buf, c) / 1000000000.0));
   offset = use_64 ? caml_copy_int64(buf->st_size) : Val_int(buf->st_size);
   v = alloc_small(12, 0);
-  Field(v, 0) = Val_int (buf->st_dev);
-  Field(v, 1) = Val_int (buf->st_ino);
+  caml_modify_field(v, 0, Val_int (buf->st_dev));
+  caml_modify_field(v, 1, Val_int (buf->st_ino));
   switch (buf->st_mode & S_IFMT) {
   case S_IFREG:
-    Field(v, 2) = Val_int(0);
+    caml_modify_field(v, 2, Val_int(0));
     break;
   case S_IFDIR:
-    Field(v, 2) = Val_int(1);
+    caml_modify_field(v, 2, Val_int(1));
     break;
   case S_IFCHR:
-    Field(v, 2) = Val_int(2);
+    caml_modify_field(v, 2, Val_int(2));
     break;
   case S_IFBLK:
-    Field(v, 2) = Val_int(3);
+    caml_modify_field(v, 2, Val_int(3));
     break;
   case S_IFLNK:
-    Field(v, 2) = Val_int(4);
+    caml_modify_field(v, 2, Val_int(4));
     break;
   case S_IFIFO:
-    Field(v, 2) = Val_int(5);
+    caml_modify_field(v, 2, Val_int(5));
     break;
   case S_IFSOCK:
-    Field(v, 2) = Val_int(6);
+    caml_modify_field(v, 2, Val_int(6));
     break;
   default:
-    Field(v, 2) = Val_int(0);
+    caml_modify_field(v, 2, Val_int(0));
     break;
   }
-  Field(v, 3) = Val_int(buf->st_mode & 07777);
-  Field(v, 4) = Val_int(buf->st_nlink);
-  Field(v, 5) = Val_int(buf->st_uid);
-  Field(v, 6) = Val_int(buf->st_gid);
-  Field(v, 7) = Val_int(buf->st_rdev);
-  Field(v, 8) = offset;
-  Field(v, 9) = atime;
-  Field(v, 10) = mtime;
-  Field(v, 11) = ctime;
+  caml_modify_field(v, 3, Val_int(buf->st_mode & 07777));
+  caml_modify_field(v, 4, Val_int(buf->st_nlink));
+  caml_modify_field(v, 5, Val_int(buf->st_uid));
+  caml_modify_field(v, 6, Val_int(buf->st_gid));
+  caml_modify_field(v, 7, Val_int(buf->st_rdev));
+  caml_modify_field(v, 8, offset);
+  caml_modify_field(v, 9, atime);
+  caml_modify_field(v, 10, mtime);
+  caml_modify_field(v, 11, ctime);
   CAMLreturn(v);
 }
 
@@ -1742,13 +1742,13 @@ static value alloc_passwd_entry(struct passwd *entry)
     dir = copy_string(entry->pw_dir);
     shell = copy_string(entry->pw_shell);
     res = alloc_small(7, 0);
-    Field(res, 0) = name;
-    Field(res, 1) = passwd;
-    Field(res, 2) = Val_int(entry->pw_uid);
-    Field(res, 3) = Val_int(entry->pw_gid);
-    Field(res, 4) = gecos;
-    Field(res, 5) = dir;
-    Field(res, 6) = shell;
+    caml_modify_field(res, 0, name);
+    caml_modify_field(res, 1, passwd);
+    caml_modify_field(res, 2, Val_int(entry->pw_uid));
+    caml_modify_field(res, 3, Val_int(entry->pw_gid));
+    caml_modify_field(res, 4, gecos);
+    caml_modify_field(res, 5, dir);
+    caml_modify_field(res, 6, shell);
   End_roots();
   return res;
 }
@@ -1763,10 +1763,10 @@ static value alloc_group_entry(struct group *entry)
     pass = copy_string(entry->gr_passwd);
     mem = copy_string_array((const char**)entry->gr_mem);
     res = alloc_small(4, 0);
-    Field(res, 0) = name;
-    Field(res, 1) = pass;
-    Field(res, 2) = Val_int(entry->gr_gid);
-    Field(res, 3) = mem;
+    caml_modify_field(res, 0, name);
+    caml_modify_field(res, 1, pass);
+    caml_modify_field(res, 2, Val_int(entry->gr_gid));
+    caml_modify_field(res, 3, mem);
   End_roots();
   return res;
 }
@@ -2035,14 +2035,14 @@ static value alloc_host_entry(struct hostent *entry)
     else
       addr_list = alloc_array(alloc_one_addr, (const char**)entry->h_addr_list);
     res = alloc_small(4, 0);
-    Field(res, 0) = name;
-    Field(res, 1) = aliases;
+    caml_modify_field(res, 0, name);
+    caml_modify_field(res, 1, aliases);
     switch (entry->h_addrtype) {
-    case PF_UNIX:          Field(res, 2) = Val_int(0); break;
-    case PF_INET:          Field(res, 2) = Val_int(1); break;
-    default: /*PF_INET6 */ Field(res, 2) = Val_int(2); break;
+    case PF_UNIX:          caml_modify_field(res, 2, Val_int(0)); break;
+    case PF_INET:          caml_modify_field(res, 2, Val_int(1)); break;
+    default: /*PF_INET6 */ caml_modify_field(res, 2, Val_int(2)); break;
     }
-    Field(res, 3) = addr_list;
+    caml_modify_field(res, 3, addr_list);
   End_roots();
   return res;
 }
@@ -2214,9 +2214,9 @@ static value alloc_protoent(struct protoent *entry)
     name = copy_string(entry->p_name);
     aliases = copy_string_array((const char**)entry->p_aliases);
     res = alloc_small(3, 0);
-    Field(res,0) = name;
-    Field(res,1) = aliases;
-    Field(res,2) = Val_int(entry->p_proto);
+    caml_modify_field(res,0, name);
+    caml_modify_field(res,1, aliases);
+    caml_modify_field(res,2, Val_int(entry->p_proto));
   End_roots();
   return res;
 }
@@ -2231,10 +2231,10 @@ static value alloc_servent(struct servent *entry)
     aliases = copy_string_array((const char**)entry->s_aliases);
     proto = copy_string(entry->s_proto);
     res = alloc_small(4, 0);
-    Field(res,0) = name;
-    Field(res,1) = aliases;
-    Field(res,2) = Val_int(ntohs(entry->s_port));
-    Field(res,3) = proto;
+    caml_modify_field(res,0, name);
+    caml_modify_field(res,1, aliases);
+    caml_modify_field(res,2, Val_int(ntohs(entry->s_port)));
+    caml_modify_field(res,3, proto);
   End_roots();
   return res;
 }
@@ -2481,11 +2481,11 @@ static value convert_addrinfo(struct addrinfo * a)
   vaddr = alloc_sockaddr(&sa, len, -1);
   vcanonname = copy_string(a->ai_canonname == NULL ? "" : a->ai_canonname);
   vres = alloc_small(5, 0);
-  Field(vres, 0) = cst_to_constr(a->ai_family, socket_domain_table, 3, 0);
-  Field(vres, 1) = cst_to_constr(a->ai_socktype, socket_type_table, 4, 0);
-  Field(vres, 2) = Val_int(a->ai_protocol);
-  Field(vres, 3) = vaddr;
-  Field(vres, 4) = vcanonname;
+  caml_modify_field(vres, 0, cst_to_constr(a->ai_family, socket_domain_table, 3, 0));
+  caml_modify_field(vres, 1, cst_to_constr(a->ai_socktype, socket_type_table, 4, 0));
+  caml_modify_field(vres, 2, Val_int(a->ai_protocol));
+  caml_modify_field(vres, 3, vaddr);
+  caml_modify_field(vres, 4, vcanonname);
   CAMLreturn(vres);
 }
 
@@ -2506,8 +2506,8 @@ static value result_getaddrinfo(struct job_getaddrinfo *job)
     for (r = job->info; r; r = r->ai_next) {
       e = convert_addrinfo(r);
       v = caml_alloc_small(2, 0);
-      Field(v, 0) = e;
-      Field(v, 1) = vres;
+      caml_modify_field(v, 0, e);
+      caml_modify_field(v, 1, vres);
       vres = v;
     }
   }
@@ -2586,8 +2586,8 @@ static value result_getnameinfo(struct job_getnameinfo *job)
     vhost = caml_copy_string(job->host);
     vserv = caml_copy_string(job->serv);
     vres = caml_alloc_small(2, 0);
-    Field(vres, 0) = vhost;
-    Field(vres, 1) = vserv;
+    caml_modify_field(vres, 0, vhost);
+    caml_modify_field(vres, 1, vserv);
     CAMLreturn(vres);
   }
 }
@@ -2713,7 +2713,7 @@ static tcflag_t* choose_field(struct termios *terminal_status, long field)
   }
 }
 
-static void encode_terminal_status(struct termios* terminal_status, value *dst)
+static void encode_terminal_status(struct termios* terminal_status, value dst, int offset)
 {
   long * pc;
   int i;
@@ -2723,7 +2723,7 @@ static void encode_terminal_status(struct termios* terminal_status, value *dst)
     case Bool:
       { tcflag_t * src = choose_field(terminal_status, *pc++);
         tcflag_t msk = *pc++;
-        *dst = Val_bool(*src & msk);
+        caml_modify_field(dst, offset, Val_bool(*src & msk));
         break; }
     case Enum:
       { tcflag_t * src = choose_field(terminal_status, *pc++);
@@ -2732,7 +2732,7 @@ static void encode_terminal_status(struct termios* terminal_status, value *dst)
         tcflag_t msk = *pc++;
         for (i = 0; i < num; i++) {
           if ((*src & msk) == pc[i]) {
-            *dst = Val_int(i + ofs);
+            caml_modify_field(dst, offset, Val_int(i + ofs));
             break;
           }
         }
@@ -2741,7 +2741,7 @@ static void encode_terminal_status(struct termios* terminal_status, value *dst)
     case Speed:
       { int which = *pc++;
         speed_t speed = 0;
-        *dst = Val_int(9600);   /* in case no speed in speedtable matches */
+        caml_modify_field(dst, 0, Val_int(9600));   /* in case no speed in speedtable matches */
         switch (which) {
         case Output:
           speed = cfgetospeed(terminal_status); break;
@@ -2750,14 +2750,14 @@ static void encode_terminal_status(struct termios* terminal_status, value *dst)
         }
         for (i = 0; i < NSPEEDS; i++) {
           if (speed == speedtable[i].speed) {
-            *dst = Val_int(speedtable[i].baud);
+            caml_modify_field (dst, 0, Val_int(speedtable[i].baud));
             break;
           }
         }
         break; }
     case Char:
       { int which = *pc++;
-        *dst = Val_int(terminal_status->c_cc[which]);
+        caml_modify_field(dst, 0, Val_int(terminal_status->c_cc[which]));
         break; }
     }
   }
@@ -2840,7 +2840,7 @@ static value result_tcgetattr(struct job_tcgetattr *job)
 {
   LWT_UNIX_CHECK_JOB(job, job->result < 0, "tcgetattr");
   value res = caml_alloc_tuple(NFIELDS);
-  encode_terminal_status(&job->termios, &Field(res, 0));
+  encode_terminal_status(&job->termios, res, 0);
   lwt_unix_free_job(&job->job);
   return res;
 }
@@ -2896,7 +2896,8 @@ CAMLprim value lwt_unix_tcsetattr_job(value fd, value when, value termios)
   LWT_UNIX_INIT_JOB(job, tcsetattr, 0);
   job->fd = Int_val(fd);
   job->when = when_flag_table[Int_val(when)];
-  memcpy(&job->termios, &Field(termios, 0), NFIELDS * sizeof(value));
+  /* XXX KC: (value*)termios is generally a bad idea */
+  memcpy(&job->termios, (value*)termios, NFIELDS * sizeof(value));
   return lwt_unix_alloc_job(&job->job);
 }
 

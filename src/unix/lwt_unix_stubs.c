@@ -128,7 +128,11 @@ char *lwt_unix_strdup(char *str)
 
 void lwt_unix_not_available(char const *feature)
 {
-  caml_raise_with_arg(*caml_named_value("lwt:not-available"), caml_copy_string(feature));
+  static int found = 0;
+  static value lwt_not_available = NULL;
+  if (!found)
+    lwt_not_available = caml_get_named_value("lwt:not-available", &found);
+  caml_raise_with_arg(lwt_not_available, caml_copy_string(feature));
 }
 
 /* +-----------------------------------------------------------------+
@@ -631,7 +635,7 @@ value lwt_unix_recv_notifications()
 
   /* Read all pending notifications. */
   for (i = 0; i < notification_index; i++)
-    Field(result, i) = Val_long(notifications[i]);
+    caml_modify_field(result, i, Val_long(notifications[i]));
   /* Reset the index. */
   notification_index = 0;
   lwt_unix_mutex_unlock(&notification_mutex);
