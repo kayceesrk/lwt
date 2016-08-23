@@ -184,7 +184,7 @@ struct job_read {
   DWORD length;
   DWORD result;
   DWORD error_code;
-  value string;
+  caml_root string;
   DWORD offset;
   char buffer[];
 };
@@ -207,14 +207,14 @@ static value result_read(struct job_read *job)
   value result;
   DWORD error = job->error_code;
   if (error) {
-    caml_remove_generational_global_root(&job->string);
+    caml_delete_root(job->string);
     lwt_unix_free_job(&job->job);
     win32_maperr(error);
     uerror("read", Nothing);
   }
-  memcpy(String_val(job->string) + job->offset, job->buffer, job->result);
+  memcpy(String_val(caml_read_root(job->string)) + job->offset, job->buffer, job->result);
   result = Val_long(job->result);
-  caml_remove_generational_global_root(&job->string);
+  caml_delete_root(job->string);
   lwt_unix_free_job(&job->job);
   return result;
 }
@@ -231,9 +231,8 @@ CAMLprim value lwt_unix_read_job(value val_fd, value val_string, value val_offse
     job->fd.socket = fd->fd.socket;
   job->length = length;
   job->error_code = 0;
-  job->string = val_string;
+  job->string = caml_create_root(val_string);
   job->offset = Long_val(val_offset);
-  caml_register_generational_global_root(&(job->string));
   return lwt_unix_alloc_job(&(job->job));
 }
 
