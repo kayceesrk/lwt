@@ -128,11 +128,11 @@ char *lwt_unix_strdup(char *str)
 
 void lwt_unix_not_available(char const *feature)
 {
-  static int found = 0;
-  static value lwt_not_available = NULL;
-  if (!found)
-    lwt_not_available = caml_get_named_value("lwt:not-available", &found);
-  caml_raise_with_arg(lwt_not_available, caml_copy_string(feature));
+  static caml_root lwt_not_available = NULL;
+  if(!lwt_not_available)
+    lwt_not_available = caml_named_root("lwt:not-available");
+  caml_raise_with_arg(caml_read_root(lwt_not_available),
+                      caml_copy_string(feature));
 }
 
 /* +-----------------------------------------------------------------+
